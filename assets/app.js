@@ -17,12 +17,37 @@
     ...chapter.voiceChoices.map((choice) => [choice.id, { ...choice, chapterId: chapter.id, type: 'Подача текста' }]),
   ]));
   const categoryImages = {
-    presentation: 'assets/images/feature-presentation.webp', catalogs: 'assets/images/feature-catalogs.webp',
-    sales: 'assets/images/feature-sales.webp', booking: 'assets/images/feature-booking.webp',
-    calendar: 'assets/images/feature-calendar.webp', management: 'assets/images/feature-management.webp',
-    trust: 'assets/images/feature-trust.webp', marketing: 'assets/images/feature-marketing.webp',
-    integrations: 'assets/images/feature-integrations.webp', growth: 'assets/images/feature-growth.webp',
+    presentation: ['assets/images/feature-presentation.webp', 'assets/images/feature-presentation-map.webp', 'assets/images/feature-presentation-seasonal.webp'],
+    catalogs: ['assets/images/feature-catalogs.webp', 'assets/images/feature-catalogs-costumes.webp', 'assets/images/feature-catalogs-programs.webp'],
+    sales: ['assets/images/feature-sales.webp', 'assets/images/feature-sales-quiz.webp', 'assets/images/feature-sales-builder.webp'],
+    booking: ['assets/images/feature-booking.webp', 'assets/images/feature-booking-status.webp', 'assets/images/feature-booking-repeat.webp'],
+    calendar: ['assets/images/feature-calendar.webp', 'assets/images/feature-calendar-conflict.webp', 'assets/images/feature-calendar-logistics.webp'],
+    management: ['assets/images/feature-management.webp', 'assets/images/feature-management-content.webp', 'assets/images/feature-management-leads.webp'],
+    trust: ['assets/images/feature-trust.webp', 'assets/images/feature-trust-people.webp', 'assets/images/feature-trust-docs.webp'],
+    marketing: ['assets/images/feature-marketing.webp', 'assets/images/feature-marketing-analytics.webp', 'assets/images/feature-marketing-content.webp'],
+    integrations: ['assets/images/feature-integrations.webp', 'assets/images/feature-integrations-social.webp', 'assets/images/feature-integrations-calendar.webp'],
+    growth: ['assets/images/feature-growth.webp', 'assets/images/feature-growth-content.webp', 'assets/images/feature-growth-performance.webp'],
   };
+  const categoryModuleIndex = new Map();
+  data.categories.forEach((category) => {
+    data.modules.filter((module) => module.category === category.id)
+      .forEach((module, index) => categoryModuleIndex.set(module.id, index));
+  });
+  const moduleImageOverrides = new Map([
+    ['event-map', categoryImages.presentation[1]], ['seasonal-skins', categoryImages.presentation[2]],
+    ['costume-catalog', categoryImages.catalogs[1]], ['props-catalog', categoryImages.catalogs[1]],
+    ['program-catalog', categoryImages.catalogs[2]], ['program-detail', categoryImages.catalogs[2]],
+    ['party-quiz', categoryImages.sales[1]], ['program-builder', categoryImages.sales[2]], ['package-builder', categoryImages.sales[2]],
+    ['booking-status', categoryImages.booking[1]], ['repeat-order', categoryImages.booking[2]],
+    ['conflict-engine', categoryImages.calendar[1]], ['travel-buffer', categoryImages.calendar[2]],
+    ['program-management', categoryImages.management[1]], ['content-rates', categoryImages.management[1]],
+    ['lead-statuses', categoryImages.management[2]], ['crm', categoryImages.management[2]], ['manager-tasks', categoryImages.management[2]],
+    ['team', categoryImages.trust[1]], ['artist-profiles', categoryImages.trust[1]], ['legal-docs', categoryImages.trust[2]], ['faq', categoryImages.trust[2]],
+    ['analytics', categoryImages.marketing[1]], ['goals-events', categoryImages.marketing[1]], ['blog', categoryImages.marketing[2]], ['newsletter', categoryImages.marketing[2]],
+    ['vk-integration', categoryImages.integrations[1]], ['max-integration', categoryImages.integrations[1]], ['cross-posting', categoryImages.integrations[1]],
+    ['google-calendar', categoryImages.integrations[2]], ['outlook-calendar', categoryImages.integrations[2]],
+    ['content-migration', categoryImages.growth[1]], ['photo-direction', categoryImages.growth[1]], ['performance-budget', categoryImages.growth[2]],
+  ]);
 
   const safe = (value) => String(value ?? '').replace(/[<>&"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]));
   const cleanText = (value, maxLength) => typeof value === 'string' ? value.slice(0, maxLength) : '';
@@ -125,6 +150,13 @@
   function moduleCostMarkup(module) {
     if (!pricing) return '';
     return `<p class="module-cost">${safe(pricing.labels.module)}: ${pricing.format(moduleCost(module))}</p>`;
+  }
+
+  function moduleImage(module) {
+    const themed = moduleImageOverrides.get(module.id);
+    if (themed) return themed;
+    const images = categoryImages[module.category] || categoryImages.presentation;
+    return images[(categoryModuleIndex.get(module.id) || 0) % images.length];
   }
 
   function miniMarkup(design) {
@@ -305,7 +337,7 @@
     const priority = state.priorities[module.id] || 'desired';
     return `<article class="module-card ${selected ? 'is-selected' : ''}" data-module-card="${module.id}">
       <div class="module-card-top"><span class="module-category">${safe(categoryById.get(module.category)?.title)}</span><label class="module-toggle"><input type="checkbox" data-module-toggle="${module.id}" ${selected ? 'checked' : ''}><span>${selected ? 'В проекте' : 'Включить'}</span></label></div>
-      <figure class="module-visual"><img src="${categoryImages[module.category]}" alt="Иллюстративный образ функции «${safe(module.title)}»" loading="lazy" decoding="async" width="1200" height="800"><span class="module-visual-wash" aria-hidden="true"></span><span class="module-demo demo-${demoClass(module)}" aria-hidden="true"></span><figcaption>${safe(module.title)}</figcaption></figure>
+      <figure class="module-visual"><img src="${moduleImage(module)}" alt="Иллюстративный образ функции «${safe(module.title)}»" loading="lazy" decoding="async" width="1200" height="800"><span class="module-visual-wash" aria-hidden="true"></span><span class="module-demo demo-${demoClass(module)}" aria-hidden="true"></span><figcaption>${safe(module.title)}</figcaption></figure>
       <div class="module-content">
         <h3>${safe(module.title)}</h3><p class="module-summary">${safe(module.summary)}</p>
         <p class="benefit-line"><strong>Польза:</strong> ${safe(module.benefit)}</p>
@@ -559,52 +591,8 @@
     return lines.filter((line) => line !== undefined).join('\n');
   }
 
-  async function copyBrief() {
-    const text = buildBriefText();
-    let copied = false;
-    if (navigator.clipboard && window.isSecureContext) {
-      try { await navigator.clipboard.writeText(text); copied = true; } catch { copied = false; }
-    }
-    if (!copied) {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.setAttribute('readonly', '');
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        copied = document.execCommand('copy');
-      } catch {
-        copied = false;
-      }
-      textarea.remove();
-    }
-    state.exported = true;
-    saveState();
-    updateProgress();
-    toast(copied ? 'Техническое задание скопировано.' : 'Не удалось скопировать. Скачайте TXT-файл.');
-  }
-
-  function downloadBrief(format) {
-    const content = format === 'json' ? JSON.stringify(buildBriefObject(), null, 2) : buildBriefText();
-    const type = format === 'json' ? 'application/json' : 'text/plain';
-    const blob = new Blob([content], { type: `${type};charset=utf-8` });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `future-site-brief.${format}`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    state.exported = true;
-    saveState();
-    updateProgress();
-    toast(`Файл ${format.toUpperCase()} подготовлен.`);
-  }
-
-  function prepareProjectSubmission(event) {
+  async function prepareProjectSubmission(event) {
+    event.preventDefault();
     const form = event.currentTarget;
     const commentField = form.querySelector('[data-client-field="projectNote"]');
     state.client.projectNote = cleanText(commentField.value, 4000);
@@ -613,11 +601,44 @@
     saveState();
     updateProgress();
     const submitButton = form.querySelector('[data-submit-project]');
-    const submissionNote = form.querySelector('[data-submission-note]');
-    submitButton.textContent = 'Выбор передан на отправку';
-    submissionNote.textContent = 'Открылось защищённое окно отправки. При первом использовании подтвердите адрес получателя в письме от FormSubmit.';
-    toast('Полное техническое задание подготовлено и передано в форму отправки.');
-    window.setTimeout(() => { submitButton.textContent = 'Отправить весь выбор'; }, 5000);
+    const submissionStatus = form.querySelector('[data-submission-status]');
+    const originalLabel = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Отправляем…';
+    submissionStatus.textContent = '';
+
+    if (window.location.protocol === 'file:') {
+      submitButton.disabled = false;
+      submitButton.textContent = originalLabel;
+      submissionStatus.textContent = 'Отправка работает в опубликованной версии сайта.';
+      return;
+    }
+
+    try {
+      const payload = new FormData(form);
+      payload.set('_url', window.location.href);
+      const response = await fetch(form.dataset.endpoint, {
+        method: 'POST',
+        body: payload,
+        headers: { Accept: 'application/json' },
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.success === false || result.success === 'false') {
+        throw new Error('Form service rejected the submission');
+      }
+      submitButton.textContent = 'Отправлено!';
+      submissionStatus.textContent = 'Готово — выбор отправлен.';
+      toast('Выбор и комментарий отправлены.');
+      window.setTimeout(() => {
+        submitButton.disabled = false;
+        submitButton.textContent = originalLabel;
+      }, 6000);
+    } catch {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Попробовать ещё раз';
+      submissionStatus.textContent = 'Не получилось отправить. Проверьте интернет и нажмите ещё раз.';
+      toast('Сервис отправки не ответил. Выбор сохранён в этом браузере.');
+    }
   }
 
   function openDrawer(trigger) {
@@ -659,17 +680,28 @@
     categorySelect.innerHTML = '<option value="">Все группы</option>' + data.categories.map((category) => `<option value="${category.id}">${safe(category.title)}</option>`).join('');
     const tierSelect = document.querySelector('[data-tier-filter]');
     tierSelect.innerHTML = '<option value="">Все этапы</option>' + data.tiers.map((tier) => `<option value="${tier.id}">${safe(tier.title)}</option>`).join('');
-    document.querySelector('[data-function-search]').addEventListener('input', (event) => { filterState.search = event.target.value.trim(); renderModules(); });
-    categorySelect.addEventListener('change', () => { filterState.category = categorySelect.value; renderModules(); });
-    tierSelect.addEventListener('change', () => { filterState.tier = tierSelect.value; renderModules(); });
+    document.querySelector('[data-function-search]').addEventListener('input', (event) => { filterState.search = event.target.value.trim(); });
+    categorySelect.addEventListener('change', () => { filterState.category = categorySelect.value; });
+    tierSelect.addEventListener('change', () => { filterState.tier = tierSelect.value; });
+    document.querySelector('[data-function-finder-form]').addEventListener('submit', (event) => {
+      event.preventDefault();
+      renderModules();
+      const firstResult = document.querySelector('.journey-chapter:not(:empty) .module-card');
+      if (firstResult) {
+        firstResult.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+        const heading = firstResult.querySelector('h3');
+        heading?.setAttribute('tabindex', '-1');
+        window.setTimeout(() => heading?.focus({ preventScroll: true }), 450);
+        toast('Подходящие функции показаны в пяти шагах выше.');
+      } else {
+        toast('По этим условиям ничего не найдено.');
+      }
+    });
   }
 
   function attachGlobalEvents() {
-    document.querySelectorAll('[data-save]').forEach((button) => button.addEventListener('click', () => saveState(true)));
-    document.querySelectorAll('[data-copy]').forEach((button) => button.addEventListener('click', copyBrief));
-    document.querySelectorAll('[data-download]').forEach((button) => button.addEventListener('click', () => downloadBrief(button.dataset.download)));
-    document.querySelectorAll('[data-print]').forEach((button) => button.addEventListener('click', () => window.print()));
     document.querySelectorAll('[data-project-form]').forEach((form) => form.addEventListener('submit', prepareProjectSubmission));
+    document.querySelectorAll('[data-reset-filters]').forEach((button) => button.addEventListener('click', resetFilters));
     document.querySelectorAll('[data-open-summary]').forEach((button) => button.addEventListener('click', () => openDrawer(button)));
     document.querySelectorAll('[data-drawer-close]').forEach((button) => button.addEventListener('click', closeDrawer));
     document.querySelectorAll('[data-clear]').forEach((button) => button.addEventListener('click', () => {
