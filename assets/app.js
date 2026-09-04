@@ -45,7 +45,7 @@
       modules: [...defaultModules],
       priorities,
       comments: {},
-      client: { name: '', email: '', projectNote: '' },
+      client: { projectNote: '' },
       visited: [],
       calendarExplored: false,
       exported: false,
@@ -73,11 +73,7 @@
         modules: (restored.modules || []).filter((id) => byId.has(id)),
         priorities: { ...base.priorities, ...restoredPriorities },
         comments: restoredComments,
-        client: {
-          name: cleanText(restored.client?.name, 120),
-          email: cleanText(restored.client?.email, 160),
-          projectNote: cleanText(restored.client?.projectNote, 2000),
-        },
+        client: { projectNote: cleanText(restored.client?.projectNote, 4000) },
         visited: Array.isArray(restored.visited) ? restored.visited.filter((value) => typeof value === 'string').slice(0, 12) : [],
         calendarExplored: restored.calendarExplored === true,
         exported: restored.exported === true,
@@ -529,8 +525,6 @@
       brief.document.toUpperCase(),
       `Сформировано: ${brief.generatedAt}`,
       '',
-      `Клиент: ${brief.client.name || 'не указано'}`,
-      `Контакт: ${brief.client.email || 'не указано'}`,
       `Комментарий к проекту: ${brief.client.projectNote || 'нет'}`,
       '',
       `ДИЗАЙН-НАПРАВЛЕНИЕ: ${brief.design?.title || 'не выбрано'}`,
@@ -610,13 +604,20 @@
     toast(`Файл ${format.toUpperCase()} подготовлен.`);
   }
 
-  function emailBrief() {
-    const subject = encodeURIComponent('Выбор для будущего сайта');
-    const body = encodeURIComponent(buildBriefText().slice(0, 1800));
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  function prepareProjectSubmission(event) {
+    const form = event.currentTarget;
+    const commentField = form.querySelector('[data-client-field="projectNote"]');
+    state.client.projectNote = cleanText(commentField.value, 4000);
+    form.querySelector('[data-brief-payload]').value = buildBriefText();
     state.exported = true;
     saveState();
     updateProgress();
+    const submitButton = form.querySelector('[data-submit-project]');
+    const submissionNote = form.querySelector('[data-submission-note]');
+    submitButton.textContent = 'Выбор передан на отправку';
+    submissionNote.textContent = 'Открылось защищённое окно отправки. При первом использовании подтвердите адрес получателя в письме от FormSubmit.';
+    toast('Полное техническое задание подготовлено и передано в форму отправки.');
+    window.setTimeout(() => { submitButton.textContent = 'Отправить весь выбор'; }, 5000);
   }
 
   function openDrawer(trigger) {
@@ -644,7 +645,7 @@
       state.techniques.length > 0,
       state.modules.length >= 3,
       state.calendarExplored,
-      Boolean(state.client.name || state.client.projectNote),
+      Boolean(state.client.projectNote),
       state.exported,
     ];
     const percent = Math.round((milestones.filter(Boolean).length / milestones.length) * 100);
@@ -668,7 +669,7 @@
     document.querySelectorAll('[data-copy]').forEach((button) => button.addEventListener('click', copyBrief));
     document.querySelectorAll('[data-download]').forEach((button) => button.addEventListener('click', () => downloadBrief(button.dataset.download)));
     document.querySelectorAll('[data-print]').forEach((button) => button.addEventListener('click', () => window.print()));
-    document.querySelectorAll('[data-email]').forEach((button) => button.addEventListener('click', emailBrief));
+    document.querySelectorAll('[data-project-form]').forEach((form) => form.addEventListener('submit', prepareProjectSubmission));
     document.querySelectorAll('[data-open-summary]').forEach((button) => button.addEventListener('click', () => openDrawer(button)));
     document.querySelectorAll('[data-drawer-close]').forEach((button) => button.addEventListener('click', closeDrawer));
     document.querySelectorAll('[data-clear]').forEach((button) => button.addEventListener('click', () => {

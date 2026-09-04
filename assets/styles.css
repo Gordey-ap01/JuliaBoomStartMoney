@@ -3488,6 +3488,8 @@ body[data-art-direction="boom"] .live-preview::after { content: ""; position: ab
 body[data-art-direction="boom"] .preview-heading { max-width: 8ch; color: #fff; font-family: "Unbounded", sans-serif; font-size: clamp(2rem, 4vw, 4rem); letter-spacing: -0.07em; line-height: 0.9; text-shadow: 3px 3px 0 var(--boom-coral); }
 body[data-art-direction="boom"] .preview-kicker { color: var(--boom-yellow); font-family: "Caveat", cursive; font-size: 1.5rem; }
 body[data-art-direction="boom"] .preview-button { color: var(--boom-ink); background: var(--boom-yellow); border: 2px solid var(--boom-ink); box-shadow: 3px 3px 0 #fff; }
+body[data-art-direction="boom"] .preview-card { color: #fff; background: rgb(7 27 43 / 0.92); border: 2px solid #fff; opacity: 1; box-shadow: 4px 4px 0 var(--boom-coral); text-shadow: none; }
+body[data-art-direction="boom"] .preview-card strong { color: var(--boom-yellow); font-family: "Unbounded", sans-serif; }
 
 body[data-art-direction="boom"] .technique-party { color: #fff; background: var(--boom-coral); }
 body[data-art-direction="boom"] .technique-card { color: var(--boom-ink); background: var(--boom-paper); border: 3px solid var(--boom-ink); border-radius: 0; box-shadow: 5px 5px 0 var(--boom-ink); }
@@ -3513,13 +3515,25 @@ body[data-art-direction="boom"] .brief-panel,
 body[data-art-direction="boom"] .cost-panel { color: var(--boom-ink); background: var(--boom-paper); border: 4px solid var(--boom-ink); border-radius: 0; box-shadow: 10px 10px 0 var(--boom-yellow); }
 body[data-art-direction="boom"] .cost-panel { box-shadow: 10px 10px 0 var(--boom-pink); }
 body[data-art-direction="boom"] .metric { color: var(--boom-ink); background: var(--boom-yellow); border: 2px solid var(--boom-ink); }
+body[data-art-direction="boom"] .metric strong,
+body[data-art-direction="boom"] .metric span { color: var(--boom-ink); }
 .brief-inspirations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; margin: 0.7rem 0 1.4rem; padding: 0; list-style: none; }
 .brief-inspirations li { display: flex; gap: 0.45rem; justify-content: space-between; padding: 0.55rem 0.65rem; background: color-mix(in srgb, var(--boom-pink) 22%, white); border: 1.5px solid var(--boom-ink); font-size: 0.78rem; }
 .brief-inspirations small { flex: 0 0 auto; color: var(--boom-blue); font-weight: 800; }
 
 body[data-art-direction="boom"] .finale { color: var(--boom-ink); background: var(--boom-pink); }
-body[data-art-direction="boom"] .client-fields,
-body[data-art-direction="boom"] .export-board { background: var(--boom-paper); border: 3px solid var(--boom-ink); border-radius: 0; box-shadow: 9px 9px 0 var(--boom-ink); }
+body[data-art-direction="boom"] .summary-tools { margin-top: 2rem; padding: 1rem; color: var(--boom-ink); background: var(--boom-yellow); border: 3px solid var(--boom-ink); box-shadow: 8px 8px 0 var(--boom-pink); }
+body[data-art-direction="boom"] .summary-tools summary { width: fit-content; cursor: pointer; font-family: "Unbounded", sans-serif; font-size: 1rem; font-weight: 800; }
+body[data-art-direction="boom"] .summary-tools[open] summary { margin-bottom: 1rem; }
+body[data-art-direction="boom"] .summary-tools .export-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body[data-art-direction="boom"] .project-submit-form { position: relative; display: grid; gap: 1.25rem; padding: clamp(1.25rem, 4vw, 3.5rem); background: var(--boom-yellow); border: 4px solid var(--boom-ink); box-shadow: 14px 14px 0 var(--boom-blue); overflow: hidden; }
+body[data-art-direction="boom"] .project-submit-form::before { position: absolute; top: -5rem; right: -4rem; width: 14rem; height: 14rem; background: var(--boom-turquoise); border: 4px solid var(--boom-ink); border-radius: 50%; content: ""; }
+body[data-art-direction="boom"] .final-comment { position: relative; z-index: 1; display: grid; gap: 1.25rem; }
+body[data-art-direction="boom"] .final-comment > span { max-width: 13ch; font-family: "Unbounded", sans-serif; font-size: clamp(2.25rem, 6vw, 6.5rem); font-weight: 900; letter-spacing: -0.075em; line-height: 0.9; text-transform: uppercase; }
+body[data-art-direction="boom"] .final-comment textarea { width: 100%; min-height: 15rem; resize: vertical; padding: 1.25rem; color: var(--boom-ink); background: #fff; border: 3px solid var(--boom-ink); border-radius: 0; box-shadow: 7px 7px 0 var(--boom-coral); font: 650 1rem/1.55 "Manrope", sans-serif; }
+body[data-art-direction="boom"] .submit-project { position: relative; z-index: 1; width: fit-content; min-width: min(100%, 22rem); min-height: 4.5rem; padding-inline: 1.5rem; color: #fff; background: var(--boom-coral); border: 3px solid var(--boom-ink); box-shadow: 6px 6px 0 var(--boom-ink); font-family: "Unbounded", sans-serif; font-size: 0.9rem; }
+body[data-art-direction="boom"] .submission-note { position: relative; z-index: 1; max-width: 70ch; margin: 0; font-size: 0.78rem; font-weight: 650; }
+.form-honey { position: absolute !important; left: -10000px !important; width: 1px !important; height: 1px !important; overflow: hidden !important; }
 body[data-art-direction="boom"] .field input,
 body[data-art-direction="boom"] .field select,
 body[data-art-direction="boom"] .field textarea { color: var(--boom-ink); background: #fff; border: 2px solid var(--boom-ink); border-radius: 0; }
@@ -3603,6 +3617,10 @@ body[data-art-direction="boom"] .dialog-head { color: #fff; background: var(--bo
   .calendar-hero-image img { height: 350px; }
   .calendar-hero-image span { right: 0.7rem; bottom: 0.7rem; font-size: 1.25rem; }
   .integration-ribbon small { width: 100%; margin-left: 0; }
+  body[data-art-direction="boom"] .summary-tools .export-grid { grid-template-columns: 1fr; }
+  body[data-art-direction="boom"] .project-submit-form { box-shadow: 8px 8px 0 var(--boom-blue); }
+  body[data-art-direction="boom"] .final-comment > span { font-size: clamp(2rem, 11vw, 3.25rem); }
+  body[data-art-direction="boom"] .submit-project { width: 100%; min-width: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3633,6 +3651,7 @@ body[data-art-direction="boom"] .dialog-head { color: #fff; background: var(--bo
   body[data-art-direction="boom"] .design-mixer,
   body[data-art-direction="boom"] .technique-party,
   body[data-art-direction="boom"] .calendar-chapter,
+  body[data-art-direction="boom"] .summary-tools,
   body[data-art-direction="boom"] .finale {
     display: none !important;
   }
