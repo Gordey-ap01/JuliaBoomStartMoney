@@ -10,6 +10,8 @@
     settings: {
       title: 'Конструктор будущего сайта',
       subtitle: 'Интерактивное коммерческое предложение для небольшого event-агентства',
+      clientName: 'Юлия',
+      clientAddress: 'Юль',
       defaultDesign: 'directors-magic',
       storagePrefix: 'event-proposal-v2',
     },
@@ -175,7 +177,7 @@
     journeyChapters: [
       {
         id: 'more', index: '01', host: 'more-show.ru', title: 'Сначала — порядок в конфетти',
-        subtitle: 'Разбираем системность More Show: большой выбор не пугает, если у клиента есть понятный маршрут.',
+        subtitle: 'Юля, я начинаю с системности More Show: большой выбор не пугает, если у клиента есть понятный маршрут.',
         accent: 'cobalt', desktopImage: 'assets/images/reference-more-desktop.webp', mobileImage: 'assets/images/reference-more-mobile.webp',
         position: 'Масштабное праздничное агентство для семей, взрослых и бизнеса.',
         route: 'Сегмент аудитории → подходящая категория → карточка программы → shortlist или заявка.',
@@ -190,11 +192,11 @@
           { id: 'more-facts', title: 'Короткие практические факты', note: 'Возраст, формат и следующий шаг видны сразу.' },
         ],
         moduleIds: ['service-pages', 'artist-catalog', 'character-catalog', 'program-catalog', 'catalog-filters', 'site-search', 'favorites', 'upsells', 'callback', 'portfolio', 'reviews'],
-        duplicateNote: 'Каталоги и обычные заявки встречаются и дальше. Мы фиксируем их здесь один раз и в следующих главах обсуждаем только отличия.',
+        duplicateNote: 'Каталоги и обычные заявки встречаются и дальше. Я фиксирую их здесь один раз и в следующих главах показываю только отличия.',
       },
       {
         id: 'vitlusova', index: '02', host: 'vitlusova.ru', title: 'Теперь — собственная вселенная',
-        subtitle: 'Смотрим, как личный голос, персонажи и главы превращают услуги в путешествие.',
+        subtitle: 'Теперь, Юль, я покажу, как личный голос, персонажи и главы превращают услуги в путешествие.',
         accent: 'pink', desktopImage: 'assets/images/reference-vitlusova-desktop.webp', mobileImage: 'assets/images/reference-vitlusova-mobile.webp',
         position: 'Авторский артистический мир, в котором важны личность создателя и история.',
         route: 'Атмосферная сцена → знакомство с миром → истории и команда → личный контакт.',
@@ -213,7 +215,7 @@
       },
       {
         id: 'ampra', index: '03', host: 'amprazdniki.com', title: 'Добавляем громкость кадра',
-        subtitle: 'Изучаем редакционную подачу: один сильный образ, крупный набор и ощущение премьеры.',
+        subtitle: 'Юля, здесь я разбираю редакционную подачу: один сильный образ, крупный набор и ощущение премьеры.',
         accent: 'yellow', desktopImage: 'assets/images/reference-amp-desktop.webp', mobileImage: 'assets/images/reference-amp-mobile.webp',
         position: 'Премиальная студия событий с взрослым визуальным языком.',
         route: 'Полноэкранное впечатление → направления → визуальные доказательства → короткий контакт.',
@@ -232,7 +234,7 @@
       },
       {
         id: 'lobacheva', index: '04', host: 'lobacheva-project.ru', title: 'Приземляем магию в понятный заказ',
-        subtitle: 'Разбираем предметную витрину: что входит, сколько длится и что можно добавить.',
+        subtitle: 'Юль, здесь я разбираю предметную витрину: что входит, сколько длится и что можно добавить.',
         accent: 'coral', desktopImage: 'assets/images/reference-lobacheva-desktop.webp', mobileImage: 'assets/images/reference-lobacheva-mobile.webp',
         position: 'Семейное event-агентство с материальной базой, шоу и готовыми решениями.',
         route: 'Сезонный повод → конкретная программа → состав и условия → запрос даты.',
@@ -250,8 +252,8 @@
         duplicateNote: 'Каталог и форма уже разобраны. Здесь смотрим не на повтор, а на конкретность комплекта, фото реальной работы и сезонную продажу.',
       },
       {
-        id: 'original', index: '05', host: 'Наша рекомендация', title: 'А теперь — то, чего не хватает всем четырём',
-        subtitle: 'Соединяем праздник с реальной операционной системой небольшого агентства: без корпоративной тяжести, но с запасом на рост.',
+        id: 'original', index: '05', host: 'Моя рекомендация', title: 'А теперь — то, чего не хватает всем четырём',
+        subtitle: 'Юлия, теперь я добавляю своё: реальную систему небольшого агентства без корпоративной тяжести, но с запасом на рост.',
         accent: 'turquoise', generatedImage: 'assets/images/feature-management.webp',
         position: 'Авторский гибрид: праздник снаружи, ясный выбор для клиента и спокойный backstage для команды.',
         route: 'Вдохновение → подбор → проверка ресурсов → подтверждение → повторный заказ.',

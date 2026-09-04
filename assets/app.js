@@ -51,6 +51,9 @@
 
   const safe = (value) => String(value ?? '').replace(/[<>&"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char]));
   const cleanText = (value, maxLength) => typeof value === 'string' ? value.slice(0, maxLength) : '';
+  const sourceForClient = (value) => String(value ?? '')
+    .replaceAll('Рекомендуется для event-агентства', 'Гордей советует для event-агентства')
+    .replaceAll('+ рекомендация', '+ совет Гордея');
   const plural = (count, one, few, many) => {
     const mod10 = count % 10;
     const mod100 = count % 100;
@@ -112,14 +115,37 @@
   let state = restoreState();
   let filterState = { search: '', category: '', tier: '' };
   let lastDrawerTrigger = null;
+  let saveStatusTimer = null;
+  let revealObserver = null;
+  let burstCleanupTimer = null;
+
+  function updateSaveStatus(mode) {
+    const status = document.querySelector('[data-save-status]');
+    if (!status) return;
+    const labels = {
+      ready: ['Автосохранение включено', 'Автосохранение'],
+      restored: ['Продолжили с прошлого места', 'Восстановлено'],
+      saving: ['Сохраняю выбор…', 'Сохраняю…'],
+      saved: ['Выбор сохранён в браузере', 'Сохранено'],
+      error: ['Сохранение запрещено браузером', 'Не сохранено'],
+    };
+    const [longLabel, shortLabel] = labels[mode] || labels.ready;
+    status.dataset.state = mode;
+    status.querySelector('[data-save-status-long]').textContent = longLabel;
+    status.querySelector('[data-save-status-short]').textContent = shortLabel;
+  }
 
   function saveState(announce = false) {
     state.savedAt = new Date().toISOString();
+    updateSaveStatus('saving');
+    window.clearTimeout(saveStatusTimer);
     try {
       localStorage.setItem(storageKey, JSON.stringify(state));
-      if (announce) toast('Выбор сохранён на этом устройстве.');
+      saveStatusTimer = window.setTimeout(() => updateSaveStatus('saved'), 360);
+      if (announce) toast(`${data.settings.clientAddress}, выбор сохранён на этом устройстве.`);
     } catch {
-      if (announce) toast('Браузер не разрешил локальное сохранение. Скачайте результат файлом.');
+      updateSaveStatus('error');
+      if (announce) toast('Браузер не разрешил локальное сохранение. Попробуйте обычный режим браузера.');
     }
   }
 
@@ -223,7 +249,7 @@
     preview.innerHTML = `<img class="preview-image" src="assets/images/celebration-hero.webp" alt="" width="1800" height="1000"><div class="preview-topbar"><span class="preview-logo">Будущий праздник</span><span class="preview-menu"><span>Программы</span><span>Артисты</span><span>Дата</span></span></div>
       <div class="preview-stage">
         <p class="preview-kicker">${safe(design.eyebrow)}</p>
-        <div class="preview-heading">Здесь начинается БУМ!</div>
+        <div class="preview-heading">${safe(data.settings.clientName)}, здесь начинается БУМ!</div>
         <span class="preview-button">Собрать свой праздник</span>
         <span class="preview-art" aria-hidden="true"></span>
       </div>
@@ -315,15 +341,23 @@
       const media = isReference
         ? `<div class="reference-media"><figure class="reference-shot reference-shot-desktop"><img src="${safe(chapter.desktopImage)}" alt="Главная страница ${safe(chapter.host)} на компьютере" loading="lazy" decoding="async" width="1200" height="760"><figcaption>Материал исследования · desktop · ${safe(chapter.host)}</figcaption></figure><figure class="reference-shot reference-shot-mobile"><img src="${safe(chapter.mobileImage)}" alt="Главная страница ${safe(chapter.host)} на телефоне" loading="lazy" decoding="async" width="500" height="900"><figcaption>Материал исследования · mobile</figcaption></figure></div>`
         : `<figure class="original-burst"><img src="${safe(chapter.generatedImage)}" alt="Оригинальный образ системы управления праздничным агентством" loading="lazy" decoding="async" width="1200" height="800"><figcaption>Оригинальная иллюстрация · сгенерировано для предложения</figcaption></figure>`;
+      const checkpointText = {
+        vitlusova: 'Можно сделать паузу: я предусмотрел автосохранение. Вернёшься в этот же браузер — выбор останется, и его можно изменить.',
+        lobacheva: 'Полпути позади, Юль. Всё отмеченное уже сохранено на этом устройстве — можно спокойно подумать и продолжить позже.',
+        original: 'Все решения на месте, Юля. Открой «Юлин проект», чтобы вернуться к любому этапу и поменять выбор перед отправкой.',
+      }[chapter.id];
+      const checkpoint = checkpointText ? `<aside class="chapter-checkpoint"><strong>Передышка от Гордея</strong><span>${safe(checkpointText)}</span></aside>` : '';
       return `<article class="journey-chapter accent-${chapter.accent}" id="reference-${chapter.id}" data-progress-chapter="reference-${chapter.id}" aria-labelledby="journey-title-${chapter.id}">
-        <header class="journey-head"><span class="journey-number" aria-hidden="true">${chapter.index}</span><div><p class="journey-source">${isReference ? `Разбор сайта · ${safe(chapter.host)}` : 'Наш следующий ход'}</p><h2 id="journey-title-${chapter.id}">${safe(chapter.title)}</h2><p>${safe(chapter.subtitle)}</p></div>${isReference ? `<a class="button button-ink" href="https://${chapter.host}/" target="_blank" rel="noreferrer">Открыть оригинал ↗</a>` : ''}</header>
+        <header class="journey-head"><span class="journey-number" aria-hidden="true">${chapter.index}</span><div><p class="journey-source">${isReference ? `Гордей разбирает · ${safe(chapter.host)}` : 'Моя рекомендация'}</p><h2 id="journey-title-${chapter.id}">${safe(chapter.title)}</h2><p>${safe(chapter.subtitle)}</p></div>${isReference ? `<a class="button button-ink" href="https://${chapter.host}/" target="_blank" rel="noreferrer">Открыть оригинал ↗</a>` : ''}</header>
         ${media}
         <div class="reference-insights"><div><span>Позиционирование</span><p>${safe(chapter.position)}</p></div><div><span>Путь клиента</span><p>${safe(chapter.route)}</p></div><div><span>Доверие</span><p>${safe(chapter.trust)}</p></div></div>
-        <section class="take-lab" aria-labelledby="take-${chapter.id}"><div class="take-intro"><p class="scribble">Ваш ход!</p><h3 id="take-${chapter.id}">Что забираем отсюда?</h3><p>Можно выбрать несколько принципов. Они попадут в итоговое ТЗ.</p></div><div class="take-columns"><fieldset><legend>По дизайну</legend>${chapter.designChoices.map((choice) => inspirationChoiceMarkup(choice, 'design')).join('')}</fieldset><fieldset><legend>По подаче текста</legend>${chapter.voiceChoices.map((choice) => inspirationChoiceMarkup(choice, 'voice')).join('')}</fieldset></div></section>
+        <section class="take-lab" aria-labelledby="take-${chapter.id}"><div class="take-intro"><p class="scribble">Твой ход, ${safe(data.settings.clientAddress)}!</p><h3 id="take-${chapter.id}">Что забираем отсюда?</h3><p>Отметь несколько принципов — я добавлю их в итоговое ТЗ.</p></div><div class="take-columns"><fieldset><legend>По дизайну</legend>${chapter.designChoices.map((choice) => inspirationChoiceMarkup(choice, 'design')).join('')}</fieldset><fieldset><legend>По подаче текста</legend>${chapter.voiceChoices.map((choice) => inspirationChoiceMarkup(choice, 'voice')).join('')}</fieldset></div></section>
         <div class="duplicate-note"><span>Без повтора</span><p>${safe(chapter.duplicateNote)}</p></div>
-        <section class="chapter-functions" aria-labelledby="functions-${chapter.id}"><div class="chapter-functions-head"><div><p class="eyebrow">Функции этого шага</p><h3 id="functions-${chapter.id}">${isReference ? 'Берём механику — не копируем оболочку' : 'Новые возможности для роста'}</h3></div><span>${modules.length} ${plural(modules.length, 'идея', 'идеи', 'идей')}</span></div><div class="module-grid">${modules.map(moduleCard).join('')}</div></section>
+        ${checkpoint}
+        <section class="chapter-functions" aria-labelledby="functions-${chapter.id}"><div class="chapter-functions-head"><div><p class="eyebrow">Что я предлагаю на этом шаге</p><h3 id="functions-${chapter.id}">${isReference ? 'Берём механику — не копируем оболочку' : 'Мои дополнительные идеи для роста'}</h3></div><span>${modules.length} ${plural(modules.length, 'идея', 'идеи', 'идей')}</span></div><div class="module-grid">${modules.map(moduleCard).join('')}</div></section>
       </article>`;
     }).join('');
+    window.requestAnimationFrame(observeScrollElements);
   }
 
   function inspirationChoiceMarkup(choice, type) {
@@ -342,7 +376,7 @@
         <h3>${safe(module.title)}</h3><p class="module-summary">${safe(module.summary)}</p>
         <p class="benefit-line"><strong>Польза:</strong> ${safe(module.benefit)}</p>
         <div class="module-meta"><span class="chip">${complexityLabels[module.complexity]}</span><span class="chip">${module.days} ${plural(module.days, 'день', 'дня', 'дней')}</span>${dependencyNames.length ? `<span class="chip ${selected && dependencyNames.some((_, index) => !state.modules.includes(module.dependencies[index])) ? 'chip-danger' : ''}">Зависимости: ${safe(dependencyNames.join(', '))}</span>` : '<span class="chip">Без зависимостей</span>'}</div>
-        <p class="module-source">Источник идеи: ${safe(module.source)}</p>
+        <p class="module-source">Источник идеи: ${safe(sourceForClient(module.source))}</p>
         <div class="module-controls"><label class="field"><span>Приоритет</span><select data-module-priority="${module.id}">${Object.entries(priorityLabels).map(([value, label]) => `<option value="${value}" ${priority === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label><button class="button button-secondary" type="button" data-module-preview="${module.id}">Подробнее</button></div>
         <label class="module-comment field"><span>Комментарий клиента</span><textarea data-module-comment="${module.id}" maxlength="800" placeholder="Что важно учесть">${safe(state.comments[module.id] || '')}</textarea></label>
         ${moduleCostMarkup(module)}
@@ -414,7 +448,7 @@
       <div class="dialog-panel"><h3>Как это работает</h3><p>${safe(module.summary)}</p></div>
       <div class="dialog-panel"><h3>Польза</h3><p>${safe(module.benefit)}</p></div>
       <div class="dialog-panel"><h3>Сценарий</h3><p>${safe(module.scenario)}</p></div>
-      <div class="dialog-panel"><h3>Источник идеи</h3><p>${safe(module.source)}</p></div>
+      <div class="dialog-panel"><h3>Источник идеи</h3><p>${safe(sourceForClient(module.source))}</p></div>
       <div class="dialog-panel"><h3>Сложность и срок</h3><p>${complexityLabels[module.complexity]}, ${module.days} ${plural(module.days, 'рабочий день', 'рабочих дня', 'рабочих дней')}.</p>${moduleCostMarkup(module)}</div>
       <div class="dialog-panel"><h3>Зависимости</h3><p>${dependencies.length ? safe(dependencies.join(', ')) : 'Можно реализовать независимо от других модулей.'}</p></div>
     </div>`;
@@ -520,7 +554,7 @@
     const result = {
       document: data.settings.title,
       generatedAt: new Date().toLocaleString('ru-RU'),
-      client: { ...state.client },
+      client: { name: data.settings.clientName, ...state.client },
       referenceChoices: state.inspirations.map((id) => inspirationById.get(id)).filter(Boolean).map((choice) => ({
         site: data.journeyChapters.find((chapter) => chapter.id === choice.chapterId)?.host,
         type: choice.type, title: choice.title, note: choice.note,
@@ -530,7 +564,7 @@
       modules: modules.map((module) => ({
         id: module.id, group: categoryById.get(module.category)?.title, stage: tierById.get(module.tier)?.title,
         title: module.title, summary: module.summary, benefit: module.benefit, scenario: module.scenario,
-        source: module.source, complexity: complexityLabels[module.complexity], days: module.days,
+        source: sourceForClient(module.source), complexity: complexityLabels[module.complexity], days: module.days,
         dependencies: module.dependencies.map((id) => byId.get(id)?.title).filter(Boolean),
         priority: priorityLabels[state.priorities[module.id] || 'desired'], comment: state.comments[module.id] || '',
       })),
@@ -556,6 +590,7 @@
     const lines = [
       brief.document.toUpperCase(),
       `Сформировано: ${brief.generatedAt}`,
+      `Клиент: ${brief.client.name}`,
       '',
       `Комментарий к проекту: ${brief.client.projectNote || 'нет'}`,
       '',
@@ -574,7 +609,7 @@
         `   Группа: ${module.group} · Этап: ${module.stage} · Сложность: ${module.complexity} · Срок: ${module.days} дн.`,
         `   Польза: ${module.benefit}`,
         `   Сценарий: ${module.scenario}`,
-        `   Источник: ${module.source}`,
+        `   Источник: ${sourceForClient(module.source)}`,
         `   Зависимости: ${module.dependencies.join(', ') || 'нет'}`,
         `   Комментарий: ${module.comment || 'нет'}`,
       ]),
@@ -627,8 +662,8 @@
         throw new Error('Form service rejected the submission');
       }
       submitButton.textContent = 'Отправлено!';
-      submissionStatus.textContent = 'Готово — выбор отправлен.';
-      toast('Выбор и комментарий отправлены.');
+      submissionStatus.textContent = `${data.settings.clientName}, готово — выбор отправлен.`;
+      toast(`${data.settings.clientAddress}, выбор и комментарий отправлены.`);
       window.setTimeout(() => {
         submitButton.disabled = false;
         submitButton.textContent = originalLabel;
@@ -650,12 +685,12 @@
     drawer.querySelector('[data-drawer-close]').focus();
   }
 
-  function closeDrawer() {
+  function closeDrawer(restoreFocus = true) {
     const drawer = document.querySelector('[data-summary-drawer]');
     drawer.classList.remove('is-open');
     drawer.setAttribute('aria-hidden', 'true');
     drawer.setAttribute('inert', '');
-    lastDrawerTrigger?.focus();
+    if (restoreFocus) lastDrawerTrigger?.focus();
   }
 
   function updateProgress() {
@@ -692,7 +727,7 @@
         const heading = firstResult.querySelector('h3');
         heading?.setAttribute('tabindex', '-1');
         window.setTimeout(() => heading?.focus({ preventScroll: true }), 450);
-        toast('Подходящие функции показаны в пяти шагах выше.');
+        toast(`${data.settings.clientAddress}, подходящие функции показаны в пяти шагах выше.`);
       } else {
         toast('По этим условиям ничего не найдено.');
       }
@@ -703,7 +738,9 @@
     document.querySelectorAll('[data-project-form]').forEach((form) => form.addEventListener('submit', prepareProjectSubmission));
     document.querySelectorAll('[data-reset-filters]').forEach((button) => button.addEventListener('click', resetFilters));
     document.querySelectorAll('[data-open-summary]').forEach((button) => button.addEventListener('click', () => openDrawer(button)));
-    document.querySelectorAll('[data-drawer-close]').forEach((button) => button.addEventListener('click', closeDrawer));
+    document.querySelectorAll('[data-drawer-close]').forEach((button) => button.addEventListener('click', (event) => {
+      closeDrawer(event.currentTarget.tagName !== 'A');
+    }));
     document.querySelectorAll('[data-clear]').forEach((button) => button.addEventListener('click', () => {
       if (!window.confirm('Очистить выбранное направление, функции, приоритеты и комментарии?')) return;
       localStorage.removeItem(storageKey);
@@ -759,6 +796,68 @@
     document.querySelectorAll('[data-progress-chapter]').forEach((section) => observer.observe(section));
   }
 
+  function burstConfetti() {
+    if (document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let layer = document.querySelector('.scroll-confetti-layer');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.className = 'scroll-confetti-layer';
+      layer.setAttribute('aria-hidden', 'true');
+      const colors = ['#ff4538', '#ffd60a', '#20c7c7', '#1645d8', '#ff4fa3'];
+      layer.innerHTML = Array.from({ length: 16 }, (_, index) => {
+        const edge = index % 2 === 0;
+        const x = edge ? 1 + ((index * 3) % 8) : 91 + ((index * 5) % 8);
+        const color = colors[index % colors.length];
+        return `<i style="--burst-x:${x}%;--burst-delay:${(index % 6) * 65}ms;--burst-spin:${240 + (index * 31)}deg;--burst-color:${color}"></i>`;
+      }).join('');
+      document.body.appendChild(layer);
+    }
+    window.clearTimeout(burstCleanupTimer);
+    layer.classList.remove('is-bursting');
+    void layer.offsetWidth;
+    layer.classList.add('is-bursting');
+    burstCleanupTimer = window.setTimeout(() => layer.classList.remove('is-bursting'), 1900);
+  }
+
+  function observeScrollElements() {
+    if (!revealObserver) return;
+    const selector = [
+      '.journey-head', '.reference-shot', '.original-burst',
+      '.reference-insights > div', '.take-lab', '.chapter-checkpoint', '.module-card',
+      '.direction-card', '.live-preview-panel', '.technique-card', '.calendar-hero-image',
+      '.calendar-shell', '.integration-ribbon', '.brief-panel', '.cost-panel', '.project-submit-form',
+    ].join(',');
+    document.querySelectorAll(`${selector}:not([data-reveal-ready])`).forEach((element, index) => {
+      element.dataset.revealReady = 'true';
+      element.classList.add('scroll-reveal');
+      element.style.setProperty('--reveal-delay', `${(index % 5) * 55}ms`);
+      revealObserver.observe(element);
+    });
+    document.querySelectorAll('.journey-chapter:not([data-celebration-ready])').forEach((element) => {
+      element.dataset.celebrationReady = 'true';
+      revealObserver.observe(element);
+    });
+  }
+
+  function initScrollStory() {
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.body.classList.add('motion-ready');
+    revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-revealed');
+        if (entry.target.matches('.journey-chapter, .calendar-shell, .cost-panel') && !entry.target.dataset.celebrated) {
+          entry.target.dataset.celebrated = 'true';
+          burstConfetti();
+        }
+        revealObserver.unobserve(entry.target);
+      });
+    }, { threshold: 0.02, rootMargin: '0px 0px -7% 0px' });
+    observeScrollElements();
+    window.setTimeout(burstConfetti, 16000);
+    window.setInterval(burstConfetti, 45000);
+  }
+
   function initAmbientMotion() {
     const hero = document.querySelector('.boom-hero');
     if (!hero || window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -783,6 +882,7 @@
   }
 
   function init() {
+    document.querySelector('a[href="#reference-original"]')?.setAttribute('aria-label', 'Рекомендации Гордея');
     renderDesigns();
     renderTechniques();
     populateFilters();
@@ -790,7 +890,9 @@
     attachModuleEvents();
     attachGlobalEvents();
     renderSummary();
+    updateSaveStatus(state.savedAt ? 'restored' : 'ready');
     observeChapters();
+    initScrollStory();
     initAmbientMotion();
     window.CalendarDemo.init({
       root: document.querySelector('[data-calendar-root]'),
