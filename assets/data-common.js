@@ -6,7 +6,7 @@
   });
 
   window.PROPOSAL_DATA = {
-    version: 3,
+    version: 4,
     settings: {
       title: 'Конструктор будущего сайта',
       subtitle: 'Интерактивное коммерческое предложение для небольшого event-агентства',

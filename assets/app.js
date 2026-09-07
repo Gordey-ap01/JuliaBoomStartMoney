@@ -5,7 +5,37 @@
   const pricing = window.PROPOSAL_PRICING || null;
   const complexityLabels = { low: 'Низкая', medium: 'Средняя', high: 'Высокая' };
   const priorityLabels = { required: 'Обязательно', desired: 'Желательно', later: 'Обсудить позже' };
-  const defaultModules = ['home-story', 'service-pages', 'program-catalog', 'program-detail', 'program-lead', 'callback', 'admin-panel'];
+  const juliaModuleIds = [
+    'home-story', 'service-pages', 'program-catalog', 'program-detail', 'program-lead', 'callback',
+    'admin-panel', 'artist-catalog', 'artist-profiles', 'visual-media', 'reviews', 'video-reviews',
+  ];
+  const juliaPriorities = {
+    'home-story': 'required', 'service-pages': 'required', 'program-catalog': 'required',
+    'program-detail': 'required', 'program-lead': 'required', callback: 'required',
+    'admin-panel': 'required', 'artist-catalog': 'required', reviews: 'required',
+    'artist-profiles': 'desired', 'visual-media': 'desired', 'video-reviews': 'desired',
+  };
+  const calendarBundleIds = ['date-request', 'public-calendar', 'admin-calendar', 'conflict-engine', 'travel-buffer', 'calendar-notes'];
+  const fastGroups = [
+    {
+      id: 'sell', number: '01', title: 'Показать и продать программы',
+      note: 'Человек сразу понимает, что можно заказать, открывает подробности и отправляет заявку без разговора «с нуля».',
+      image: 'assets/images/feature-catalogs-programs.webp',
+      moduleIds: ['home-story', 'service-pages', 'program-catalog', 'program-detail', 'program-lead', 'callback'],
+    },
+    {
+      id: 'trust', number: '02', title: 'Познакомить с артистами и вызвать доверие',
+      note: 'Не безымянные услуги, а реальные люди, живые кадры и отзывы, после которых легче решиться.',
+      image: 'assets/images/feature-trust-people.webp',
+      moduleIds: ['artist-catalog', 'artist-profiles', 'visual-media', 'reviews', 'video-reviews'],
+    },
+    {
+      id: 'manage', number: '03', title: 'Дать Юлии управление',
+      note: 'Программы, тексты и доступность можно обновлять без просьб разработчику на каждую мелочь.',
+      image: 'assets/images/feature-management-content.webp',
+      moduleIds: ['admin-panel'],
+    },
+  ];
   const storageKey = `${data.settings.storagePrefix}-${pricing ? 'estimate' : 'scope'}`;
   const byId = new Map(data.modules.map((module) => [module.id, module]));
   const categoryById = new Map(data.categories.map((category) => [category.id, category]));
@@ -63,19 +93,18 @@
   };
 
   function createInitialState() {
-    const priorities = {};
-    defaultModules.forEach((id) => { priorities[id] = 'required'; });
     return {
       version: data.version,
       design: data.settings.defaultDesign,
       inspirations: [],
       techniques: [],
-      modules: [...defaultModules],
-      priorities,
+      modules: [...juliaModuleIds],
+      priorities: { ...juliaPriorities },
       comments: {},
       client: { projectNote: '' },
       visited: [],
-      calendarExplored: false,
+      calendarExplored: true,
+      calendarPlan: 'later',
       exported: false,
       savedAt: null,
     };
@@ -104,6 +133,7 @@
         client: { projectNote: cleanText(restored.client?.projectNote, 4000) },
         visited: Array.isArray(restored.visited) ? restored.visited.filter((value) => typeof value === 'string').slice(0, 12) : [],
         calendarExplored: restored.calendarExplored === true,
+        calendarPlan: ['later', 'now', 'no'].includes(restored.calendarPlan) ? restored.calendarPlan : 'later',
         exported: restored.exported === true,
         savedAt: typeof restored.savedAt === 'string' ? restored.savedAt : null,
       };
@@ -462,6 +492,62 @@
     return state.modules.map((id) => byId.get(id)).filter(Boolean);
   }
 
+  function renderFastTrack() {
+    const groupHolder = document.querySelector('[data-fast-groups]');
+    const moduleHolder = document.querySelector('[data-fast-module-list]');
+    const estimateHolder = document.querySelector('[data-fast-estimate]');
+    if (!groupHolder || !moduleHolder || !estimateHolder) return;
+    const totals = estimate();
+    const chosen = new Set(state.modules);
+    const selectedJuliaModules = juliaModuleIds.filter((id) => chosen.has(id));
+    const priorityCounts = selectedJuliaModules.reduce((result, id) => {
+      const priority = state.priorities[id] || 'desired';
+      result[priority] = (result[priority] || 0) + 1;
+      return result;
+    }, {});
+
+    groupHolder.innerHTML = fastGroups.map((group) => {
+      const included = group.moduleIds.map((id) => byId.get(id)).filter(Boolean);
+      const selectedCount = included.filter((module) => chosen.has(module.id)).length;
+      return `<article class="fast-group fast-group-${group.id}">
+        <figure><img src="${safe(group.image)}" alt="Образ блока «${safe(group.title)}»" loading="lazy" decoding="async" width="1200" height="800"><span>${group.number}</span></figure>
+        <div><p class="fast-group-count">${selectedCount} из ${included.length} в проекте</p><h3>${safe(group.title)}</h3><p>${safe(group.note)}</p><ul>${included.map((module) => `<li class="${chosen.has(module.id) ? 'is-included' : 'is-paused'}"><span aria-hidden="true">${chosen.has(module.id) ? '✓' : '–'}</span>${safe(module.title)}</li>`).join('')}</ul></div>
+      </article>`;
+    }).join('');
+
+    moduleHolder.innerHTML = juliaModuleIds.map((id) => {
+      const module = byId.get(id);
+      const selected = chosen.has(id);
+      const priority = state.priorities[id] || juliaPriorities[id] || 'desired';
+      return `<div class="fast-module-row ${selected ? 'is-selected' : ''}">
+        <label><input type="checkbox" data-fast-module-toggle="${id}" ${selected ? 'checked' : ''}><span><strong>${safe(module.title)}</strong><small>${safe(categoryById.get(module.category)?.title)}</small></span></label>
+        <label class="fast-priority"><span>Важность</span><select data-fast-priority="${id}" ${selected ? '' : 'disabled'}>${Object.entries(priorityLabels).map(([value, label]) => `<option value="${value}" ${priority === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+      </div>`;
+    }).join('');
+
+    const scopeLine = `${selectedJuliaModules.length} ${plural(selectedJuliaModules.length, 'функция', 'функции', 'функций')} · ${priorityCounts.required || 0} обязательно · ${priorityCounts.desired || 0} желательно`;
+    estimateHolder.innerHTML = pricing
+      ? `<span>Предварительный ориентир</span><strong>${pricing.format(totals.oneTime)}</strong><small>${scopeLine}<br>${totals.weeks}–${totals.weeks + 2} недель</small>`
+      : `<span>Ориентир проекта</span><strong>${totals.weeks}–${totals.weeks + 2} недель</strong><small>${scopeLine}<br>Общая сложность: ${safe(totals.complexity)}</small>`;
+    document.querySelectorAll('input[name="calendar-plan"]').forEach((radio) => { radio.checked = radio.value === state.calendarPlan; });
+    document.querySelector('[data-fast-selected-count]').textContent = String(selectedJuliaModules.length);
+  }
+
+  function setCalendarPlan(plan) {
+    state.calendarPlan = plan;
+    if (plan === 'now') {
+      state.modules = [...new Set([...state.modules, ...calendarBundleIds])];
+      calendarBundleIds.forEach((id) => { state.priorities[id] = 'desired'; });
+      state.calendarExplored = true;
+    } else {
+      state.modules = state.modules.filter((id) => !calendarBundleIds.includes(id));
+    }
+    saveState();
+    if (document.querySelector('[data-deep-dive]')?.open) renderModules();
+    renderSummary();
+    updateProgress();
+  }
+
   function estimate() {
     const design = designById.get(state.design);
     const modules = selectedModules();
@@ -516,6 +602,7 @@
     document.querySelector('[data-priority-summary]').textContent = `${priorityCounts.required || 0} обязательно · ${priorityCounts.desired || 0} желательно · ${priorityCounts.later || 0} позже`;
     renderCostSummary(totals);
     renderDrawer(design, modules, techniques, totals);
+    renderFastTrack();
     document.querySelector('[data-mobile-summary-count]').textContent = modules.length;
   }
 
@@ -571,6 +658,7 @@
       timeline: `${totals.weeks}–${totals.weeks + 2} недель`,
       complexity: totals.complexity,
       calendarPrototypeReviewed: state.calendarExplored,
+      calendarPlan: state.calendarPlan,
       note: 'Финальный состав и технические детали фиксируются после согласования.',
     };
     if (pricing) {
@@ -597,12 +685,8 @@
       `ДИЗАЙН-НАПРАВЛЕНИЕ: ${brief.design?.title || 'не выбрано'}`,
       brief.design?.mood || '',
       '',
-      'ЧТО БЕРЁМ ИЗ РАЗБОРА РЕФЕРЕНСОВ:',
-      ...(brief.referenceChoices.length ? brief.referenceChoices.map((item) => `- ${item.site} · ${item.type}: ${item.title}`) : ['- пока ничего не выбрано']),
-      '',
-      'ВИЗУАЛЬНЫЕ ПРИЁМЫ:',
-      ...(brief.visualTechniques.length ? brief.visualTechniques.map((item) => `- ${item.title} · ${item.complexity} · ${item.days} дн.`) : ['- не выбраны']),
-      '',
+      ...(brief.referenceChoices.length ? ['ЧТО БЕРЁМ ИЗ РАЗБОРА РЕФЕРЕНСОВ:', ...brief.referenceChoices.map((item) => `- ${item.site} · ${item.type}: ${item.title}`), ''] : []),
+      ...(brief.visualTechniques.length ? ['ДОПОЛНИТЕЛЬНЫЕ ВИЗУАЛЬНЫЕ ПРИЁМЫ:', ...brief.visualTechniques.map((item) => `- ${item.title} · ${item.complexity} · ${item.days} дн.`), ''] : []),
       'ФУНКЦИОНАЛЬНЫЕ МОДУЛИ:',
       ...brief.modules.flatMap((module, index) => [
         `${index + 1}. ${module.title} [${module.priority}]`,
@@ -617,6 +701,7 @@
       `ОБЩАЯ СЛОЖНОСТЬ: ${brief.complexity}`,
       `ОРИЕНТИРОВОЧНЫЙ СРОК: ${brief.timeline}`,
       `ПРОТОТИП КАЛЕНДАРЯ ПРОСМОТРЕН: ${brief.calendarPrototypeReviewed ? 'да' : 'нет'}`,
+      `КАЛЕНДАРЬ В ПРОЕКТЕ: ${{ later: 'вернуться после запуска', now: 'включить сейчас', no: 'пока не нужен' }[brief.calendarPlan] || 'обсудить'}`,
     ];
     if (pricing && brief.estimate) {
       lines.push('', pricing.labels.oneTime.toUpperCase(), pricing.format(brief.estimate.oneTime));
@@ -695,14 +780,9 @@
 
   function updateProgress() {
     const milestones = [
-      data.journeyChapters.filter((chapter) => chapter.id !== 'original').every((chapter) => state.visited.includes(`reference-${chapter.id}`) || state.visited.includes(chapter.id)),
-      state.inspirations.length > 0,
       Boolean(state.design),
-      state.techniques.length > 0,
-      state.modules.length >= 3,
-      state.calendarExplored,
-      Boolean(state.client.projectNote),
-      state.exported,
+      state.modules.length > 0,
+      ['later', 'now', 'no'].includes(state.calendarPlan),
     ];
     const percent = Math.round((milestones.filter(Boolean).length / milestones.length) * 100);
     document.querySelector('[data-progress-value]').style.width = `${percent}%`;
@@ -720,6 +800,8 @@
     tierSelect.addEventListener('change', () => { filterState.tier = tierSelect.value; });
     document.querySelector('[data-function-finder-form]').addEventListener('submit', (event) => {
       event.preventDefault();
+      const deepDive = document.querySelector('[data-deep-dive]');
+      if (deepDive) deepDive.open = true;
       renderModules();
       const firstResult = document.querySelector('.journey-chapter:not(:empty) .module-card');
       if (firstResult) {
@@ -741,6 +823,42 @@
     document.querySelectorAll('[data-drawer-close]').forEach((button) => button.addEventListener('click', (event) => {
       closeDrawer(event.currentTarget.tagName !== 'A');
     }));
+    const deepDive = document.querySelector('[data-deep-dive]');
+    document.querySelectorAll('a[href^="#"]').forEach((link) => link.addEventListener('click', () => {
+      const target = document.getElementById(link.getAttribute('href').slice(1));
+      if (target && deepDive?.contains(target)) deepDive.open = true;
+    }));
+    document.querySelectorAll('[data-open-deep]').forEach((button) => button.addEventListener('click', () => {
+      const target = document.querySelector(button.dataset.openDeep);
+      if (!target || !deepDive) return;
+      deepDive.open = true;
+      window.requestAnimationFrame(() => target.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }));
+    }));
+    deepDive?.addEventListener('toggle', () => {
+      if (!deepDive.open) return;
+      renderDeepDive();
+      window.requestAnimationFrame(observeScrollElements);
+    });
+    document.querySelector('[data-fast-module-list]')?.addEventListener('change', (event) => {
+      const toggle = event.target.closest('[data-fast-module-toggle]');
+      if (toggle) {
+        const accepted = setModuleSelected(toggle.dataset.fastModuleToggle, toggle.checked);
+        if (!accepted) toggle.checked = true;
+        saveState();
+        if (deepDive?.open) renderModules();
+        renderSummary();
+        updateProgress();
+        document.querySelector(`[data-fast-module-toggle="${toggle.dataset.fastModuleToggle}"]`)?.focus();
+        return;
+      }
+      const priority = event.target.closest('[data-fast-priority]');
+      if (!priority) return;
+      state.priorities[priority.dataset.fastPriority] = priority.value;
+      saveState();
+      if (deepDive?.open) renderModules();
+      renderSummary();
+    });
+    document.querySelectorAll('input[name="calendar-plan"]').forEach((radio) => radio.addEventListener('change', () => setCalendarPlan(radio.value)));
     document.querySelectorAll('[data-clear]').forEach((button) => button.addEventListener('click', () => {
       if (!window.confirm('Очистить выбранное направление, функции, приоритеты и комментарии?')) return;
       localStorage.removeItem(storageKey);
@@ -826,6 +944,7 @@
       '.reference-insights > div', '.take-lab', '.chapter-checkpoint', '.module-card',
       '.direction-card', '.live-preview-panel', '.technique-card', '.calendar-hero-image',
       '.calendar-shell', '.integration-ribbon', '.brief-panel', '.cost-panel', '.project-submit-form',
+      '.quick-result-hero', '.fast-group', '.fast-calendar', '.fast-edit-panel',
     ].join(',');
     document.querySelectorAll(`${selector}:not([data-reveal-ready])`).forEach((element, index) => {
       element.dataset.revealReady = 'true';
@@ -846,7 +965,7 @@
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
         entry.target.classList.add('is-revealed');
-        if (entry.target.matches('.journey-chapter, .calendar-shell, .cost-panel') && !entry.target.dataset.celebrated) {
+        if (entry.target.matches('.journey-chapter, .calendar-shell, .cost-panel, .quick-result-hero') && !entry.target.dataset.celebrated) {
           entry.target.dataset.celebrated = 'true';
           burstConfetti();
         }
@@ -873,20 +992,36 @@
   }
 
   function renderAll() {
-    renderDesigns();
-    renderTechniques();
-    renderModules();
+    if (document.querySelector('[data-deep-dive]')?.open) renderDeepDive();
     renderSummary();
     document.querySelectorAll('[data-client-field]').forEach((field) => { field.value = state.client[field.dataset.clientField] || ''; });
     updateProgress();
   }
 
-  function init() {
-    document.querySelector('a[href="#reference-original"]')?.setAttribute('aria-label', 'Рекомендации Гордея');
+  function renderDeepDive() {
     renderDesigns();
     renderTechniques();
-    populateFilters();
     renderModules();
+  }
+
+  function renderCompactHero() {
+    const holder = document.querySelector('.hero-content');
+    if (!holder) return;
+    holder.innerHTML = `<p class="hero-kicker"><span>1 решение</span><span>12 функций</span><span>3 минуты</span></p>
+      <h1 id="page-title"><span>${safe(data.settings.clientAddress)}, выбор уже</span><strong>сделан.</strong><em>Вот сайт!</em></h1>
+      <p class="hero-lead">Ты уже показала главное: нужен яркий сайт с программами, артистами, отзывами, простой заявкой и управлением без разработчика. Я собрал это в готовую основу — осталось только проверить, ничего ли не хочется убрать.</p>
+      <p class="author-note"><strong>Гордей сократил маршрут.</strong> Никаких обязательных экскурсий по четырём сайтам и 79 функциям. Сначала — твоё решение. Все варианты спрятаны ниже на случай, если самой захочется копнуть глубже.</p>
+      <div class="hero-actions"><a class="button button-primary button-xl" href="#quick-project">Показать готовую основу</a><a class="button button-paper" href="research.html">Почему именно так?</a></div>`;
+  }
+
+  function init() {
+    renderCompactHero();
+    document.querySelector('a[href="#reference-original"]')?.setAttribute('aria-label', 'Рекомендации Гордея');
+    const deepDive = document.querySelector('[data-deep-dive]');
+    const initialHashTarget = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
+    if (deepDive && initialHashTarget && deepDive.contains(initialHashTarget)) deepDive.open = true;
+    populateFilters();
+    if (deepDive?.open) renderDeepDive();
     attachModuleEvents();
     attachGlobalEvents();
     renderSummary();
